@@ -1,0 +1,3 @@
+/work/examples/02-exec-result/print-string/build/CMakeFiles/print_string.dir
+/work/examples/02-exec-result/print-string/build/CMakeFiles/edit_cache.dir
+/work/examples/02-exec-result/print-string/build/CMakeFiles/rebuild_cache.dir

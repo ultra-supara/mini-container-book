@@ -1,0 +1,1 @@
+/usr/bin/cc "CMakeFiles/mini-container.dir/src/main.c.o" -o mini-container 

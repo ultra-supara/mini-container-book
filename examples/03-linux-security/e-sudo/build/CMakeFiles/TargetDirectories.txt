@@ -1,0 +1,3 @@
+/work/examples/03-linux-security/e-sudo/build/CMakeFiles/e_sudo.dir
+/work/examples/03-linux-security/e-sudo/build/CMakeFiles/edit_cache.dir
+/work/examples/03-linux-security/e-sudo/build/CMakeFiles/rebuild_cache.dir

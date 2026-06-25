@@ -1,0 +1,3 @@
+/work/examples/02-exec-result/file-io/build/CMakeFiles/file_io.dir
+/work/examples/02-exec-result/file-io/build/CMakeFiles/edit_cache.dir
+/work/examples/02-exec-result/file-io/build/CMakeFiles/rebuild_cache.dir

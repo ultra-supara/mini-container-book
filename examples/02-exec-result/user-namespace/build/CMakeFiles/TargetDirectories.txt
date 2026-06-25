@@ -1,0 +1,3 @@
+/work/examples/02-exec-result/user-namespace/build/CMakeFiles/user_namespace_example.dir
+/work/examples/02-exec-result/user-namespace/build/CMakeFiles/edit_cache.dir
+/work/examples/02-exec-result/user-namespace/build/CMakeFiles/rebuild_cache.dir

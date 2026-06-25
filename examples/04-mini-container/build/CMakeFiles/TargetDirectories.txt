@@ -1,0 +1,3 @@
+/work/examples/04-mini-container/build/CMakeFiles/mini-container.dir
+/work/examples/04-mini-container/build/CMakeFiles/edit_cache.dir
+/work/examples/04-mini-container/build/CMakeFiles/rebuild_cache.dir

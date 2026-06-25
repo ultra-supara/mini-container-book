@@ -1,0 +1,3 @@
+/work/examples/02-exec-result/pipe/build/CMakeFiles/pipe_example.dir
+/work/examples/02-exec-result/pipe/build/CMakeFiles/edit_cache.dir
+/work/examples/02-exec-result/pipe/build/CMakeFiles/rebuild_cache.dir
