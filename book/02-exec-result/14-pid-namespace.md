@@ -260,6 +260,19 @@ $ sudo ./example
 
 新しいPID名前空間で最初に作成されたプロセスのプロセスIDは`1`であることがわかります．通常，ホスト側のPIDはプロセスが作成されるごとに既存のPIDと重ならない値になりますが，PID名前空間の内側では独立したPIDが割り当てられます．
 
+**図: 同じプロセスがホストとPID名前空間で別のPIDに見える**
+
+```mermaid
+flowchart LR
+    subgraph Host["ホストのPID名前空間"]
+        H["子プロセス: PID=7790"]
+    end
+    subgraph NS["新しいPID名前空間"]
+        N["同じプロセス: PID=1"]
+    end
+    H -. 同一プロセス .- N
+```
+
 完全なサンプルコードは [examples/02-exec-result/pid-namespace](../../examples/02-exec-result/pid-namespace/README.md) にあります。
 
 ---
