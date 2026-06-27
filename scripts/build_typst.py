@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
 
 
@@ -59,7 +60,20 @@ def mermaid_asset_id(source: str) -> str:
     return digest[:12]
 
 
-def render_mermaid_block(source: str, assets_dir: Path | None, renderer) -> str:
+def render_mermaid_block(
+    source: str,
+    assets_dir: Path | None,
+    renderer: Callable[[str, Path], None] | None,
+) -> str:
+    """Return Typst markup for a mermaid block.
+
+    When ``renderer`` and ``assets_dir`` are given, the SVG is written to
+    ``assets_dir / "<id>.svg"`` and an image reference ``assets/<id>.svg`` is
+    emitted. This assumes the generated Typst file lives at ``assets_dir.parent``;
+    the caller must guarantee that. ``renderer`` should raise on failure;
+    rendering errors degrade gracefully to a raw mermaid fenced block so the
+    build never fails.
+    """
     asset_id = mermaid_asset_id(source)
     if renderer is not None and assets_dir is not None:
         svg_path = assets_dir / f"{asset_id}.svg"
@@ -67,7 +81,7 @@ def render_mermaid_block(source: str, assets_dir: Path | None, renderer) -> str:
             if not svg_path.exists():
                 renderer(source, svg_path)
             return f'#align(center, image("assets/{asset_id}.svg", width: 90%))'
-        except MermaidRenderError as exc:
+        except (MermaidRenderError, OSError, subprocess.SubprocessError) as exc:
             print(f"warning: mermaid render failed: {exc}", file=sys.stderr)
     return "```mermaid\n" + source + "\n```"
 
@@ -76,7 +90,7 @@ def convert_markdown(
     markdown: str,
     source_path: Path,
     assets_dir: Path | None = None,
-    renderer=None,
+    renderer: Callable[[str, Path], None] | None = None,
 ) -> str:
     output: list[str] = []
     lines = markdown.splitlines()
@@ -97,7 +111,7 @@ def convert_markdown(
                     raise BuildTypstError(
                         f"unclosed mermaid block in {source_path}"
                     )
-                index += 1  # closing fence を読み飛ばす
+                index += 1  # skip closing fence
                 source = "\n".join(item.rstrip() for item in block_lines)
                 output.append(render_mermaid_block(source, assets_dir, renderer))
                 continue

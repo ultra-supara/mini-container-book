@@ -174,3 +174,30 @@ class BuildTypstTests(unittest.TestCase):
 
         self.assertEqual(a, b)
         self.assertEqual(len(a), 12)
+
+    def test_render_mermaid_block_calls_renderer_and_emits_image(self):
+        calls = []
+
+        def fake_renderer(source, out_path):
+            calls.append((source, out_path))
+            out_path.write_text("<svg/>", encoding="utf-8")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            result = build_typst.render_mermaid_block(
+                "flowchart TB\n  A --> B", Path(tmp), fake_renderer
+            )
+
+        self.assertIn("#align(center, image(", result)
+        self.assertEqual(len(calls), 1)
+
+    def test_render_mermaid_block_falls_back_on_render_error(self):
+        def bad_renderer(source, out_path):
+            raise build_typst.MermaidRenderError("mmdc not found")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            result = build_typst.render_mermaid_block(
+                "flowchart TB\n  A --> B", Path(tmp), bad_renderer
+            )
+
+        self.assertIn("```mermaid", result)
+        self.assertIn("A --> B", result)
