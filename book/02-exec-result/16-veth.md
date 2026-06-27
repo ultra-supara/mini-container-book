@@ -37,6 +37,15 @@ $ ip link show
 
 `veth1A`と`veth1B`の2つのインターフェイスが増えたことがわかります．この2つのインターフェイスで相互にパケットをやりとりできます．
 
+**図: vethペアを作った直後（両方ともホスト側に存在）**
+
+```mermaid
+flowchart LR
+    subgraph Host["ホスト"]
+        A["veth1A"] <--> B["veth1B"]
+    end
+```
+
 ### 名前空間の作成とveth1Bの割り当て
 
  次に`veth1B`を`ns1`名前空間に移動します．前章から続けていて，すでに`ns1`を作成済みの場合は，`ip netns add ns1`は実行しなくて構いません．
@@ -53,6 +62,19 @@ $ ip link show
 ```
 
 詳細は異なりますが，おおむね以下のように表示されると思います．`veth1B`が`ns1`名前空間に移動したためアクセスできなくなり，一覧から表示されなくなったことがわかります．
+
+**図: veth1Bをns1へ移動するとホスト側から見えなくなる**
+
+```mermaid
+flowchart LR
+    subgraph Host["ホスト"]
+        A["veth1A"]
+    end
+    subgraph NS1["ns1名前空間"]
+        B["veth1B"]
+    end
+    A <-->|パケット| B
+```
 
 ```bash
 1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
@@ -146,6 +168,19 @@ $ ip address show dev veth1B
        valid_lft forever preferred_lft forever
     inet6 fe80::ecf0:b7ff:fe02:35a7/64 scope link
        valid_lft forever preferred_lft forever
+```
+
+**図: IP割り当て後の構成（10.0.0.1 ⇄ 10.0.0.2）**
+
+```mermaid
+flowchart LR
+    subgraph Host["ホスト"]
+        A["veth1A<br/>10.0.0.1/24"]
+    end
+    subgraph NS1["ns1名前空間"]
+        B["veth1B<br/>10.0.0.2/24"]
+    end
+    A <-->|"10.0.0.0/24"| B
 ```
 
 ---

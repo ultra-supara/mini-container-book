@@ -28,6 +28,19 @@ pid_t child = clone(container_child, (char*)stack + STACK_SIZE, flags, config);
 
 `CLONE_NEWNET`と`CLONE_NEWUSER`はオプションで有効にします．最初の実験ではネットワークやUser名前空間を使わず，PID，Mount，UTS名前空間だけで動かしてみると理解しやすいです．そのあとで`--userns`や`--network`を足していきます．
 
+**図: cloneで子だけが新しい名前空間に入る**
+
+```mermaid
+flowchart TB
+    subgraph Host["ホストの名前空間"]
+        P["親プロセス"]
+    end
+    subgraph New["新しい名前空間（PID/Mount/UTS、任意でNET/USER）"]
+        C["子プロセス container_child"]
+    end
+    P -->|"clone(flags, ...)"| C
+```
+
 ## スタックを用意する
 
 glibcの`clone`ラッパーでは，子プロセス用のスタックを呼び出し側で用意します．完成版では`mmap`で1MiBの領域を確保しています．
@@ -59,6 +72,19 @@ pid_t child = clone(container_child, (char*)stack + STACK_SIZE, flags, config);
 1. Mount名前空間内で`chroot`と`chdir`を行う
 1. 必要なら`/proc`をマウントする
 1. `init`としてコマンドを実行する
+
+**図: container_childの処理順**
+
+```mermaid
+sequenceDiagram
+    participant C as container_child
+    Note over C: 親の準備完了を待つ（sync_pipe）
+    C->>C: sethostname（UTS名前空間）
+    C->>C: setup_child_network（--network時、chrootより前）
+    C->>C: setup_rootfs（chroot + chdir）
+    C->>C: mount_procfs（--mount-proc時）
+    C->>C: run_init（コマンド実行）
+```
 
 実装は次のようになります．
 

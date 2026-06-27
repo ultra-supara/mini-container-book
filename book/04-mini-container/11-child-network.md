@@ -4,6 +4,18 @@
 
 子プロセス側では，ループバックを有効にし，`mc-child0`を`eth0`へリネームし，IPアドレスとデフォルトルートを設定します．
 
+**図: 子プロセスのネットワーク設定（setup_child_network）**
+
+```mermaid
+sequenceDiagram
+    participant C as 子プロセス（コンテナ側）
+    C->>C: ip link set lo up
+    C->>C: ip link set mc-child0 name eth0
+    C->>C: ip address add 10.200.0.2/24 dev eth0
+    C->>C: ip link set eth0 up
+    C->>C: ip route add default via 10.200.0.1
+```
+
 ```c
 static int setup_child_network(void) {
     char* const up_loopback[] = {"ip", "link", "set", "lo", "up", NULL};

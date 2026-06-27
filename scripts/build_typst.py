@@ -2,8 +2,15 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import os
 import re
+import shlex
+import shutil
+import subprocess
 import sys
+import tempfile
+from collections.abc import Callable
 from pathlib import Path
 
 
@@ -12,6 +19,10 @@ DEFAULT_OUTPUT = ROOT / "dist" / "mini-container-book.typ"
 
 
 class BuildTypstError(Exception):
+    pass
+
+
+class MermaidRenderError(Exception):
     pass
 
 
@@ -43,7 +54,87 @@ def extract_book_files(root: Path) -> list[Path]:
     return files
 
 
-def convert_markdown(markdown: str, source_path: Path) -> str:
+def mermaid_asset_id(source: str) -> str:
+    normalized = "\n".join(line.rstrip() for line in source.splitlines())
+    digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+    return digest[:12]
+
+
+def render_mermaid_block(
+    source: str,
+    assets_dir: Path | None,
+    renderer: Callable[[str, Path], None] | None,
+) -> str:
+    """Return Typst markup for a mermaid block.
+
+    When ``assets_dir`` is given, the SVG is looked up at ``assets_dir / "<id>.svg"``
+    and an image reference ``assets/<id>.svg`` is emitted. This assumes the
+    generated Typst file lives at ``assets_dir.parent``; the caller must guarantee
+    that. An already-cached SVG is reused even when ``renderer`` is ``None`` (e.g.
+    pre-rendered by ``make diagrams``); on a cache miss the SVG is rendered with
+    ``renderer`` if one is available. ``renderer`` should raise on failure;
+    rendering errors degrade gracefully to a raw mermaid fenced block so the
+    build never fails.
+    """
+    asset_id = mermaid_asset_id(source)
+    if assets_dir is not None:
+        svg_path = assets_dir / f"{asset_id}.svg"
+        if svg_path.exists():
+            return f'#align(center, image("assets/{asset_id}.svg", width: 90%))'
+        if renderer is not None:
+            try:
+                renderer(source, svg_path)
+                return f'#align(center, image("assets/{asset_id}.svg", width: 90%))'
+            except (MermaidRenderError, OSError, subprocess.SubprocessError) as exc:
+                print(f"warning: mermaid render failed: {exc}", file=sys.stderr)
+    return "```mermaid\n" + source + "\n```"
+
+
+def find_mermaid_renderer() -> Callable[[str, Path], None] | None:
+    command = os.environ.get("MMDC")
+    if command:
+        try:
+            argv = shlex.split(command)
+        except ValueError as exc:
+            raise BuildTypstError(f"invalid MMDC environment variable: {exc}") from exc
+    else:
+        mmdc = shutil.which("mmdc")
+        if not mmdc:
+            return None
+        argv = [mmdc]
+
+    def render(source: str, out_path: Path) -> None:
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp_path: Path | None = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                "w", suffix=".mmd", delete=False, encoding="utf-8"
+            ) as handle:
+                tmp_path = Path(handle.name)
+                handle.write(source)
+            result = subprocess.run(
+                argv + ["-i", str(tmp_path), "-o", str(out_path), "-b", "transparent"],
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode != 0:
+                out_path.unlink(missing_ok=True)
+                raise MermaidRenderError(
+                    f"mmdc failed for {out_path.name}: {result.stderr.strip()}"
+                )
+        finally:
+            if tmp_path is not None:
+                tmp_path.unlink(missing_ok=True)
+
+    return render
+
+
+def convert_markdown(
+    markdown: str,
+    source_path: Path,
+    assets_dir: Path | None = None,
+    renderer: Callable[[str, Path], None] | None = None,
+) -> str:
     output: list[str] = []
     lines = markdown.splitlines()
     in_code = False
@@ -53,6 +144,20 @@ def convert_markdown(markdown: str, source_path: Path) -> str:
         raw_line = lines[index]
         line = raw_line.rstrip()
         if line.startswith("```"):
+            if not in_code and line[3:].strip() == "mermaid":
+                block_lines: list[str] = []
+                index += 1
+                while index < len(lines) and not lines[index].startswith("```"):
+                    block_lines.append(lines[index])
+                    index += 1
+                if index >= len(lines):
+                    raise BuildTypstError(
+                        f"unclosed mermaid block in {source_path}"
+                    )
+                index += 1  # skip closing fence
+                source = "\n".join(item.rstrip() for item in block_lines)
+                output.append(render_mermaid_block(source, assets_dir, renderer))
+                continue
             output.append(line)
             in_code = not in_code
             index += 1
@@ -213,18 +318,38 @@ def document_preamble() -> str:
 """
 
 
-def build_document(root: Path) -> str:
+def build_document(
+    root: Path,
+    assets_dir: Path | None = None,
+    renderer: Callable[[str, Path], None] | None = None,
+) -> str:
     parts = [document_preamble()]
     for source in extract_book_files(root):
         if not source.exists():
             raise BuildTypstError(f"referenced Markdown file does not exist: {source}")
-        parts.append(convert_markdown(source.read_text(encoding="utf-8"), source))
+        parts.append(
+            convert_markdown(
+                source.read_text(encoding="utf-8"), source, assets_dir, renderer
+            )
+        )
     return "\n\n".join(part.strip() for part in parts if part.strip()) + "\n"
 
 
-def write_typst_file(root: Path, output: Path) -> None:
+_RENDERER_UNSET = object()
+
+
+def write_typst_file(root: Path, output: Path, renderer=_RENDERER_UNSET) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(build_document(root), encoding="utf-8")
+    if renderer is _RENDERER_UNSET:
+        renderer = find_mermaid_renderer()
+    # Always pass assets_dir so already-cached SVGs are reused even without a
+    # renderer; only create the directory when a renderer may write into it.
+    assets_dir = output.parent / "assets"
+    if renderer is not None:
+        assets_dir.mkdir(parents=True, exist_ok=True)
+    output.write_text(
+        build_document(root, assets_dir, renderer), encoding="utf-8"
+    )
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:

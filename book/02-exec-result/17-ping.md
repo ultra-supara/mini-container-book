@@ -19,6 +19,16 @@ PING 10.0.0.1 (10.0.0.1) 56(84) bytes of data.
 rtt min/avg/max/mdev = 0.035/0.058/0.075/0.017 ms
 ```
 
+**図: ns1からveth1A（10.0.0.1）へのpingの往復**
+
+```mermaid
+sequenceDiagram
+    participant B as ns1: veth1B (10.0.0.2)
+    participant A as ホスト: veth1A (10.0.0.1)
+    B->>A: ICMP echo request
+    A-->>B: ICMP echo reply
+```
+
 しかし，まだインターネットとは通信ができません．以下のコマンドでインターネットのアドレスである`8.8.8.8`と通信を試みます．
 
 ```bash

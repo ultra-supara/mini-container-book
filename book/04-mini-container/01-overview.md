@@ -29,16 +29,18 @@ $ sudo ./build/mini-container [OPTIONS] ROOTFS COMMAND [ARGS...]
 
 こう並べると大きなプログラムに見えますが，中心になる構造は単純です．親プロセスはホスト側に残って準備を行い，子プロセスは新しい名前空間の中で待機します．親が準備を終えたら，子プロセスに「もう進んでよい」と知らせます．子プロセスはそのあと，ファイルシステムを切り替えて，指定されたコマンドを実行します．
 
-```text
-parent process
-  |
-  | clone(CLONE_NEWPID | CLONE_NEWNS | CLONE_NEWUTS | ...)
-  v
-child process in new namespaces
-  |
-  | wait until parent finishes uid/gid and network setup
-  v
-set hostname, configure network, chroot, run init
+**図: 親が準備し、子が待ち、準備完了後に子が実行する**
+
+```mermaid
+sequenceDiagram
+    participant P as 親プロセス（ホスト側）
+    participant C as 子プロセス（新名前空間）
+    P->>C: clone(CLONE_NEWPID | CLONE_NEWNS | CLONE_NEWUTS | ...)
+    Note over C: sync_pipeのreadで待機
+    P->>P: uid/gidマッピング・ネットワーク・NAT設定
+    P->>C: notify（pipeへ1バイト）
+    Note over C: sethostname → network → chroot/chdir → init
+    C->>C: 指定コマンドを実行
 ```
 
 この「親が準備し，子が待ち，準備が終わったら子が実行する」という形が，この章の重要な骨格です．

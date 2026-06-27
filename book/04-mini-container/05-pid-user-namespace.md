@@ -29,6 +29,19 @@ $ sudo ./build/mini-container --mount-proc / /bin/cat /proc/self/status
 
 ここで見たいのは，「ホスト側のPID」と「コンテナ内から見えるPID」が同じではないという点です．PID名前空間は，プロセスIDの番号空間を分離します．
 
+**図: コンテナ内のPID 1はホストでは別のPIDに見える**
+
+```mermaid
+flowchart LR
+    subgraph Host["ホストのPID名前空間"]
+        H["mini-containerの子<br/>例: PID=4321"]
+    end
+    subgraph NS["コンテナのPID名前空間"]
+        N["init: PID=1"]
+    end
+    H -. 同一プロセス .- N
+```
+
 ## User名前空間を見る
 
 User名前空間を有効にするには`--userns`を付けます．
@@ -39,6 +52,19 @@ uid=0(root) gid=0(root) groups=0(root)
 ```
 
 コンテナ内ではUID 0に見えます．しかし，ホスト全体のroot権限をそのまま得たわけではありません．親プロセスが`uid_map`と`gid_map`に書いた対応関係により，コンテナ内のUID 0がホスト側の実UIDへ対応付けられています．
+
+**図: uid_mapでコンテナ内UID 0をホストの実UIDへ対応付ける**
+
+```mermaid
+flowchart LR
+    subgraph Container["コンテナ内（User名前空間）"]
+        A["UID 0（rootに見える）"]
+    end
+    subgraph Host["ホスト側"]
+        B["UID 1000（一般ユーザー）"]
+    end
+    A -->|"uid_map: 0 1000 1"| B
+```
 
 この性質が，rootlessコンテナの基礎になります．「コンテナ内ではrootに見えるが，ホスト側では一般ユーザーとして扱われる」という状態を作れるからです．ただし，ファイル所有者やネットワーク設定の扱いは単純ではありません．rootlessで実用的なコンテナを作るには，subuid/subgid，ユーザー空間ネットワーク，補助プログラムなども必要になります．
 

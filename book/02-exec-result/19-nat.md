@@ -2,6 +2,16 @@
 
 `veth1A`を設定したターミナルで，以下のコマンドを入力します．このコマンドはNATという機能を利用するための設定です．この例では、**`ens4`**というインターフェイス名を使用していますが、実際の環境では異なる名前が使われることがあります。`ip route`などでインターネット側へ出ていくインターフェイス名を確認し，環境に合わせて置き換えてください。
 
+**図: MASQUERADEで送信元10.0.0.2をens4のアドレスへ書き換える**
+
+```mermaid
+flowchart LR
+    NS["ns1: 10.0.0.2"] -->|"src=10.0.0.2"| H["ホスト<br/>POSTROUTING MASQUERADE"]
+    H -->|"src=ens4のIPへ書換"| NET["インターネット (8.8.8.8)"]
+    NET -->|"戻りはconntrackで対応付け"| H
+    H --> NS
+```
+
 ```bash
 $ iptables --table nat --append POSTROUTING --source 10.0.0.0/24 --out-interface ens4 --jump MASQUERADE
 ```

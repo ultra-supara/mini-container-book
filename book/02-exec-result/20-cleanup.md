@@ -2,6 +2,19 @@
 
 使用が終わった後は、以下のコマンドを使用して名前空間、vethデバイス、NAT設定を削除してください。
 
+**図: クリーンアップで実験用リソースを消す**
+
+```mermaid
+flowchart LR
+    subgraph Before["後始末前"]
+        A["ns1 / veth1A・veth1B<br/>iptables NAT・FORWARD<br/>ip_forward=1"]
+    end
+    subgraph After["後始末後"]
+        B["元の状態へ復帰"]
+    end
+    Before -->|"netns del / link del / iptables -D / ip_forward=0"| After
+```
+
 ### iptablesルールの削除
 
 NATの章で追加したルールを削除します。`ens4`は実際に指定したインターフェイス名に置き換えてください。

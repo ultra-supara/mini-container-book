@@ -6,6 +6,21 @@
 
 そのため，この章の実装ではパイプを使って，親子のタイミングをそろえます．
 
+**図: sync_pipeで子を待たせ、親の準備完了後に解放する**
+
+```mermaid
+sequenceDiagram
+    participant P as 親プロセス
+    participant C as 子プロセス
+    Note over P,C: pipe(sync_pipe) を作成
+    C->>C: read(sync_pipe[0]) でブロック
+    P->>P: setup_user_map（uid_map/gid_map）
+    P->>P: setup_parent_network（veth作成・移動）
+    P->>P: setup_nat（必要時）
+    P->>C: write(sync_pipe[1], "1")
+    C->>C: readが1バイト返り、処理を続行
+```
+
 ## パイプを作る
 
 `start_container`の中で同期用のパイプを作ります．
