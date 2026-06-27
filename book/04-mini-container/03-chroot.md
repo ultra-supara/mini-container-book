@@ -4,6 +4,19 @@
 
 ただし，`chroot`しただけではカレントディレクトリは自動的には変わりません．そのため，続けて`chdir("/")`を呼びます．この2つはセットで考える方が安全です．
 
+**図: chroot+chdirでプロセスの「/」を切り替える**
+
+```mermaid
+flowchart LR
+    subgraph Before["chroot前"]
+        A["プロセスの / = ホストの /"]
+    end
+    subgraph After["chroot後 + chdir(/)"]
+        B["プロセスの / = rootfs<br/>/bin/sh = rootfs/bin/sh"]
+    end
+    Before -->|"mount private → chroot(rootfs) → chdir(/)"| After
+```
+
 ```c
 static int setup_rootfs(const char* rootfs) {
     if (mount(NULL, "/", NULL, MS_REC | MS_PRIVATE, NULL) != 0) {
