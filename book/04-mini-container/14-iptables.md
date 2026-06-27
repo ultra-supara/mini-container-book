@@ -59,8 +59,8 @@ static int setup_nat(const char* outbound_if) {
 
 ```mermaid
 flowchart LR
-    C["コンテナ eth0<br/>10.200.0.2"] -->|"default via 10.200.0.1"| H["ホスト mc-host0<br/>FORWARD許可 + ip_forward=1"]
-    H -->|"POSTROUTING MASQUERADE<br/>src→eth0のIP"| NET["インターネット 8.8.8.8"]
+    C["コンテナ側eth0<br/>10.200.0.2"] -->|"default via 10.200.0.1"| H["ホスト<br/>mc-host0 と 外側eth0<br/>FORWARD許可 + ip_forward=1"]
+    H -->|"POSTROUTING MASQUERADE<br/>src→ホスト外側eth0のIP"| NET["インターネット 8.8.8.8"]
     NET -->|"戻りはconntrackで対応付け"| H
     H --> C
 ```
