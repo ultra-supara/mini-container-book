@@ -67,29 +67,36 @@ def render_mermaid_block(
 ) -> str:
     """Return Typst markup for a mermaid block.
 
-    When ``renderer`` and ``assets_dir`` are given, the SVG is written to
-    ``assets_dir / "<id>.svg"`` and an image reference ``assets/<id>.svg`` is
-    emitted. This assumes the generated Typst file lives at ``assets_dir.parent``;
-    the caller must guarantee that. ``renderer`` should raise on failure;
+    When ``assets_dir`` is given, the SVG is looked up at ``assets_dir / "<id>.svg"``
+    and an image reference ``assets/<id>.svg`` is emitted. This assumes the
+    generated Typst file lives at ``assets_dir.parent``; the caller must guarantee
+    that. An already-cached SVG is reused even when ``renderer`` is ``None`` (e.g.
+    pre-rendered by ``make diagrams``); on a cache miss the SVG is rendered with
+    ``renderer`` if one is available. ``renderer`` should raise on failure;
     rendering errors degrade gracefully to a raw mermaid fenced block so the
     build never fails.
     """
     asset_id = mermaid_asset_id(source)
-    if renderer is not None and assets_dir is not None:
+    if assets_dir is not None:
         svg_path = assets_dir / f"{asset_id}.svg"
-        try:
-            if not svg_path.exists():
-                renderer(source, svg_path)
+        if svg_path.exists():
             return f'#align(center, image("assets/{asset_id}.svg", width: 90%))'
-        except (MermaidRenderError, OSError, subprocess.SubprocessError) as exc:
-            print(f"warning: mermaid render failed: {exc}", file=sys.stderr)
+        if renderer is not None:
+            try:
+                renderer(source, svg_path)
+                return f'#align(center, image("assets/{asset_id}.svg", width: 90%))'
+            except (MermaidRenderError, OSError, subprocess.SubprocessError) as exc:
+                print(f"warning: mermaid render failed: {exc}", file=sys.stderr)
     return "```mermaid\n" + source + "\n```"
 
 
 def find_mermaid_renderer() -> Callable[[str, Path], None] | None:
     command = os.environ.get("MMDC")
     if command:
-        argv = shlex.split(command)
+        try:
+            argv = shlex.split(command)
+        except ValueError as exc:
+            raise BuildTypstError(f"invalid MMDC environment variable: {exc}") from exc
     else:
         mmdc = shutil.which("mmdc")
         if not mmdc:
@@ -335,8 +342,10 @@ def write_typst_file(root: Path, output: Path, renderer=_RENDERER_UNSET) -> None
     output.parent.mkdir(parents=True, exist_ok=True)
     if renderer is _RENDERER_UNSET:
         renderer = find_mermaid_renderer()
-    assets_dir = output.parent / "assets" if renderer is not None else None
-    if assets_dir is not None:
+    # Always pass assets_dir so already-cached SVGs are reused even without a
+    # renderer; only create the directory when a renderer may write into it.
+    assets_dir = output.parent / "assets"
+    if renderer is not None:
         assets_dir.mkdir(parents=True, exist_ok=True)
     output.write_text(
         build_document(root, assets_dir, renderer), encoding="utf-8"

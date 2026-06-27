@@ -202,6 +202,17 @@ class BuildTypstTests(unittest.TestCase):
         self.assertIn("```mermaid", result)
         self.assertIn("A --> B", result)
 
+    def test_render_mermaid_block_reuses_cached_svg_without_renderer(self):
+        source = "flowchart TB\n  A --> B"
+        with tempfile.TemporaryDirectory() as tmp:
+            assets = Path(tmp)
+            asset_id = build_typst.mermaid_asset_id(source)
+            (assets / f"{asset_id}.svg").write_text("<svg/>", encoding="utf-8")
+
+            result = build_typst.render_mermaid_block(source, assets, None)
+
+        self.assertIn(f'image("assets/{asset_id}.svg"', result)
+
     def test_convert_markdown_emits_image_when_renderer_available(self):
         with tempfile.TemporaryDirectory() as tmp:
             assets = Path(tmp)
