@@ -58,19 +58,30 @@ $ sudo ./build/mini-container --network / /bin/true
 $ sudo ./build/mini-container --network / /bin/sh
 ```
 
-コンテナ内で確認します．
+コンテナ内で確認します．実際に実行すると，次のように表示されます．
 
 ```bash
-# ip address
-# ip route
+# ip route show default
+default via 10.200.0.1 dev eth0
 ```
 
-`lo`と`eth0`が見え，`eth0`に`10.200.0.2/24`が付いていれば，子プロセス側のネットワーク設定が通っています．デフォルトルートが`10.200.0.1`を向いていれば，ホスト側へパケットを渡す準備もできています．
+```bash
+# ip address show eth0
+2: eth0@if3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 state UP
+    inet 10.200.0.2/24 scope global eth0
+       valid_lft forever preferred_lft forever
+```
+
+`lo`と`eth0`が見え，`eth0`に`10.200.0.2/24`が付いていれば，子プロセス側のネットワーク設定が通っています．デフォルトルートが`10.200.0.1`を向いていれば，ホスト側へパケットを渡す準備もできています．上の出力は実機での確認結果であり，`ip route show default`が`10.200.0.1`を指していることが，子側のルーティング設定まで通った証拠になります．
 
 ホスト側へ疎通確認するなら，コンテナ内から次を実行します．
 
 ```bash
 # ping -c 1 10.200.0.1
+PING 10.200.0.1 (10.200.0.1) 56(84) bytes of data.
+64 bytes from 10.200.0.1: icmp_seq=1 ttl=64 time=0.052 ms
 ```
 
 ここまで通れば，Network名前空間，veth，IPアドレス設定，ルーティングがつながっています．
+
+> 対話シェルを終了したとき，`Cannot set tty process group (No such process)`というメッセージが出ることがあります．これは，新しいPID名前空間の中にいる対話シェルが，終了時に端末のフォアグラウンドプロセスグループを元へ戻そうとして失敗するためです．`sudo`から継承した制御端末のプロセスグループ番号はホスト側の番号空間のものなので，コンテナ側からは存在しないIDに見えます．`mini-container`は端末（PTY）の割り当てやセッションリーダー化（`setsid`）まで行わない最小実装なので，このメッセージが出ます．コマンドの実行結果には影響しません．`docker run -t`がこれを出さないのは，コンテナ用に新しいPTYを割り当て，最初のプロセスをセッションリーダーにしているからです．
