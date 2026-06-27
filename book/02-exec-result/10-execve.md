@@ -45,6 +45,19 @@ int execve(const char *pathname, char *const argv[],
 
 現在のプロセスのメモリは全て破棄され，新しいプロセスのものに置き換わります．
 
+**図: execveはプロセスを保ったまま中身を置き換える（PIDは不変）**
+
+```mermaid
+flowchart LR
+    subgraph Before["execve前（PID=1234）"]
+        A["メモリ: 呼び出し元プログラム"]
+    end
+    subgraph After["execve後（PID=1234のまま）"]
+        B["メモリ: /usr/bin/id に置換<br/>fdは引き継ぎ"]
+    end
+    Before -->|"execve(path, argv, envp)"| After
+```
+
 ### 引数
 
 `pathname`には実行するファイルのパスを絶対パスまたは相対パスの文字列で指定します． `argv`には，使用するコマンドライン引数の文字列のポインタの配列を指定します．配列の最後にはNULLを指定します．たとえば，`char *s[] = {"ls", "/", NULL}`は正しい形式の引数です． `envp`にも，`argv`と同様の形式で環境変数を指定します．今回はとくに利用しなくても大丈夫なので，NULLのみからなる配列を指定します．
