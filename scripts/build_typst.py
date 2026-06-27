@@ -2,8 +2,14 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import os
 import re
+import shlex
+import shutil
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 
@@ -12,6 +18,10 @@ DEFAULT_OUTPUT = ROOT / "dist" / "mini-container-book.typ"
 
 
 class BuildTypstError(Exception):
+    pass
+
+
+class MermaidRenderError(Exception):
     pass
 
 
@@ -43,7 +53,31 @@ def extract_book_files(root: Path) -> list[Path]:
     return files
 
 
-def convert_markdown(markdown: str, source_path: Path) -> str:
+def mermaid_asset_id(source: str) -> str:
+    normalized = "\n".join(line.rstrip() for line in source.splitlines())
+    digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+    return digest[:12]
+
+
+def render_mermaid_block(source: str, assets_dir: Path | None, renderer) -> str:
+    asset_id = mermaid_asset_id(source)
+    if renderer is not None and assets_dir is not None:
+        svg_path = assets_dir / f"{asset_id}.svg"
+        try:
+            if not svg_path.exists():
+                renderer(source, svg_path)
+            return f'#align(center, image("assets/{asset_id}.svg", width: 90%))'
+        except MermaidRenderError as exc:
+            print(f"warning: mermaid render failed: {exc}", file=sys.stderr)
+    return "```mermaid\n" + source + "\n```"
+
+
+def convert_markdown(
+    markdown: str,
+    source_path: Path,
+    assets_dir: Path | None = None,
+    renderer=None,
+) -> str:
     output: list[str] = []
     lines = markdown.splitlines()
     in_code = False
@@ -53,6 +87,20 @@ def convert_markdown(markdown: str, source_path: Path) -> str:
         raw_line = lines[index]
         line = raw_line.rstrip()
         if line.startswith("```"):
+            if not in_code and line[3:].strip() == "mermaid":
+                block_lines: list[str] = []
+                index += 1
+                while index < len(lines) and not lines[index].startswith("```"):
+                    block_lines.append(lines[index])
+                    index += 1
+                if index >= len(lines):
+                    raise BuildTypstError(
+                        f"unclosed mermaid block in {source_path}"
+                    )
+                index += 1  # closing fence を読み飛ばす
+                source = "\n".join(item.rstrip() for item in block_lines)
+                output.append(render_mermaid_block(source, assets_dir, renderer))
+                continue
             output.append(line)
             in_code = not in_code
             index += 1

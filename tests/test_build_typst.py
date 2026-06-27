@@ -153,3 +153,24 @@ class BuildTypstTests(unittest.TestCase):
 
             self.assertEqual(exit_code, 0)
             self.assertTrue(output.exists())
+
+    def test_convert_markdown_falls_back_when_no_renderer(self):
+        markdown = "```mermaid\nflowchart TB\n  A --> B\n```\n"
+
+        typst = build_typst.convert_markdown(markdown, Path("book/01.md"))
+
+        self.assertIn("```mermaid", typst)
+        self.assertIn("A --> B", typst)
+
+    def test_convert_markdown_raises_on_unclosed_mermaid_block(self):
+        with self.assertRaises(build_typst.BuildTypstError):
+            build_typst.convert_markdown(
+                "```mermaid\nflowchart TB\n  A --> B\n", Path("book/01.md")
+            )
+
+    def test_mermaid_asset_id_is_deterministic_and_12_chars(self):
+        a = build_typst.mermaid_asset_id("flowchart TB\n  A --> B")
+        b = build_typst.mermaid_asset_id("flowchart TB\n  A --> B\n")
+
+        self.assertEqual(a, b)
+        self.assertEqual(len(a), 12)
