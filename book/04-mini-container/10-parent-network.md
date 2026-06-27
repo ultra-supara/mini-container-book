@@ -4,6 +4,19 @@
 
 ここではホスト側のインターフェイス名を`mc-host0`，コンテナ側へ渡す一時的な名前を`mc-child0`にします．
 
+**図: 親プロセスのネットワーク準備（setup_parent_network）**
+
+```mermaid
+sequenceDiagram
+    participant P as 親プロセス（ホスト側）
+    P->>P: ip link del mc-host0（前回分を掃除・失敗可）
+    P->>P: ip link add mc-host0 type veth peer name mc-child0
+    P->>P: ip link set mc-child0 netns 子プロセスのPID
+    Note over P: mc-child0はもうホスト側から見えない
+    P->>P: ip address add 10.200.0.1/24 dev mc-host0
+    P->>P: ip link set mc-host0 up
+```
+
 ## vethを作って子へ渡す
 
 親側の設定は次のようになります．

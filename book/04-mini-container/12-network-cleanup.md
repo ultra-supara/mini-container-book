@@ -2,6 +2,19 @@
 
 コンテナが終了したら，親プロセスはホスト側に残したvethを削除します．vethペアは片方を削除すると，もう片方も削除されます．子プロセスが終了すればNetwork名前空間も消えるため，通常はホスト側の`mc-host0`を削除すれば十分です．
 
+**図: 終了時にホスト側vethを消すとペアごと片付く**
+
+```mermaid
+flowchart LR
+    subgraph Before["コンテナ終了時"]
+        A["mc-host0（ホスト側に残存）<br/>eth0（子のnetns）"]
+    end
+    subgraph After["cleanup後"]
+        B["ip link del mc-host0<br/>→ ペアのeth0も消える"]
+    end
+    Before --> After
+```
+
 ```c
 static void cleanup_parent_network(void) {
     char* const delete_veth[] = {"ip", "link", "del", "mc-host0", NULL};

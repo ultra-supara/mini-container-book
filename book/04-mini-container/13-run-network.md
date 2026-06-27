@@ -2,6 +2,19 @@
 
 ここまでに作ったネットワーク処理を，`start_container`へ組み込みます．重要なのは順番です．親プロセスは，子プロセスを作ったあと，子プロセスをまだ待たせたまま，必要な設定を行います．
 
+**図: start_containerでの準備順（最後にnotifyで子を解放）**
+
+```mermaid
+sequenceDiagram
+    participant P as 親プロセス
+    participant C as 子プロセス（待機中）
+    P->>P: setup_user_map（--userns時）
+    P->>P: setup_parent_network（--network時）
+    P->>P: setup_nat（--nat-if時）
+    P->>C: notify_child_ready（pipeへ1バイト）
+    C->>C: 待機解除 → ネットワーク/chroot/init
+```
+
 ```c
 if (config->use_userns &&
     setup_user_map(child, getuid(), getgid()) != 0) {

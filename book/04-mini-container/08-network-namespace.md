@@ -12,6 +12,19 @@ mc-host0 10.200.0.1/24  <-------->  eth0 10.200.0.2/24
 
 この構成では，ホスト側の`mc-host0`が`10.200.0.1/24`を持ち，コンテナ側の`eth0`が`10.200.0.2/24`を持ちます．コンテナ側のデフォルトゲートウェイは`10.200.0.1`にします．
 
+**図: mc-host0 ⇄ eth0 のveth構成**
+
+```mermaid
+flowchart LR
+    subgraph Host["ホストのNetwork名前空間"]
+        A["mc-host0<br/>10.200.0.1/24"]
+    end
+    subgraph Container["コンテナのNetwork名前空間"]
+        B["eth0（旧mc-child0）<br/>10.200.0.2/24<br/>default via 10.200.0.1"]
+    end
+    A <-->|veth| B
+```
+
 ## なぜ親子で分担するのか
 
 Network名前空間の設定は，親プロセスと子プロセスで分担します．

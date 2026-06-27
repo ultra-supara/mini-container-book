@@ -55,6 +55,16 @@ static int setup_nat(const char* outbound_if) {
 
 `MASQUERADE`は，外へ出るパケットの送信元アドレスを，外側インターフェイスのアドレスに変換します．戻りのパケットはconntrackにより対応付けられ，コンテナ側へ戻されます．
 
+**図: コンテナ(10.200.0.2)から外部への往復とNAT**
+
+```mermaid
+flowchart LR
+    C["コンテナ eth0<br/>10.200.0.2"] -->|"default via 10.200.0.1"| H["ホスト mc-host0<br/>FORWARD許可 + ip_forward=1"]
+    H -->|"POSTROUTING MASQUERADE<br/>src→eth0のIP"| NET["インターネット 8.8.8.8"]
+    NET -->|"戻りはconntrackで対応付け"| H
+    H --> C
+```
+
 ## 片付ける
 
 追加したルールは，終了時に削除します．
