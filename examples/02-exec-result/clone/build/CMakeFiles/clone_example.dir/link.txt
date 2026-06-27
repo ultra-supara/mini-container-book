@@ -1,1 +1,0 @@
-/usr/bin/cc CMakeFiles/clone_example.dir/src/main.c.o -o clone_example 

@@ -1,1 +1,0 @@
-/usr/bin/cc CMakeFiles/e_sudo.dir/src/main.c.o -o e_sudo 

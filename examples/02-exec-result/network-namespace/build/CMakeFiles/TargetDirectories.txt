@@ -1,3 +1,0 @@
-/work/examples/02-exec-result/network-namespace/build/CMakeFiles/network_namespace_example.dir
-/work/examples/02-exec-result/network-namespace/build/CMakeFiles/edit_cache.dir
-/work/examples/02-exec-result/network-namespace/build/CMakeFiles/rebuild_cache.dir

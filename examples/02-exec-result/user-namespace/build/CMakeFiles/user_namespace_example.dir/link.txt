@@ -1,1 +1,0 @@
-/usr/bin/cc CMakeFiles/user_namespace_example.dir/src/main.c.o -o user_namespace_example 

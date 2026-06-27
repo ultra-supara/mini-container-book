@@ -1,3 +1,0 @@
-/work/examples/01-basics/cmake-hello/build/CMakeFiles/hello.dir
-/work/examples/01-basics/cmake-hello/build/CMakeFiles/edit_cache.dir
-/work/examples/01-basics/cmake-hello/build/CMakeFiles/rebuild_cache.dir
