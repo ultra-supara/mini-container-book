@@ -94,14 +94,14 @@ $ cmake -DCMAKE_BUILD_TYPE=Debug [CMakeLists.txtのあるディレクトリ]
 
 ### ライブラリの追加
 
-プロジェクトに外部ライブラリを追加する場合、CMakeでライブラリのパスやリンク方法を設定する必要があります。例として、**`libmath`**ライブラリを追加する場合、CMakeLists.txtに以下のような設定を追加します。
+プロジェクトに外部ライブラリを追加する場合、CMakeでライブラリのパスやリンク方法を設定する必要があります。例として、**`libm`**ライブラリを追加する場合、CMakeLists.txtに以下のような設定を追加します。
 
 ```cmake
 find_library(MATH_LIBRARY NAMES m)
 target_link_libraries(hello ${MATH_LIBRARY})
 ```
 
-**`find_library`**コマンドで、**`libmath`**ライブラリを検索し、その結果を**`MATH_LIBRARY`**変数に格納します。そして、**`target_link_libraries`**コマンドで、**`hello`**実行ファイルに対して**`MATH_LIBRARY`**をリンクします。
+**`find_library`**コマンドで、**`libm`**ライブラリを検索し、その結果を**`MATH_LIBRARY`**変数に格納します。そして、**`target_link_libraries`**コマンドで、**`hello`**実行ファイルに対して**`MATH_LIBRARY`**をリンクします。
 
 ### 練習
 

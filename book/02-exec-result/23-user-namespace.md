@@ -83,6 +83,7 @@ printf("UID=%d\n", (int)getuid());
 ```c
 void print_uid(const char* s) {
     printf("[%s]UID=%d\n", s ? s : "", (int)getuid());
+    fflush(stdout);
 }
 ```
 
@@ -116,6 +117,7 @@ int main() {
 
 void print_uid(const char* s) {
     printf("[%s]UID=%d\n", s ? s : "", (int)getuid());
+    fflush(stdout);
 }
 
 int main() {
@@ -236,6 +238,7 @@ int main() {
 
 void print_uid(const char* s) {
     printf("[%s]UID=%d\n", s ? s : "", (int)getuid());
+    fflush(stdout);
 }
 
 int child(void* arg) {
