@@ -86,6 +86,39 @@ def render_mermaid_block(
     return "```mermaid\n" + source + "\n```"
 
 
+def find_mermaid_renderer() -> Callable[[str, Path], None] | None:
+    command = os.environ.get("MMDC")
+    if command:
+        argv = shlex.split(command)
+    else:
+        mmdc = shutil.which("mmdc")
+        if not mmdc:
+            return None
+        argv = [mmdc]
+
+    def render(source: str, out_path: Path) -> None:
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile(
+            "w", suffix=".mmd", delete=False, encoding="utf-8"
+        ) as handle:
+            handle.write(source)
+            tmp_path = Path(handle.name)
+        try:
+            result = subprocess.run(
+                argv + ["-i", str(tmp_path), "-o", str(out_path), "-b", "transparent"],
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode != 0:
+                raise MermaidRenderError(
+                    f"mmdc failed for {out_path.name}: {result.stderr.strip()}"
+                )
+        finally:
+            tmp_path.unlink(missing_ok=True)
+
+    return render
+
+
 def convert_markdown(
     markdown: str,
     source_path: Path,
@@ -275,18 +308,32 @@ def document_preamble() -> str:
 """
 
 
-def build_document(root: Path) -> str:
+def build_document(root: Path, assets_dir: Path | None = None, renderer=None) -> str:
     parts = [document_preamble()]
     for source in extract_book_files(root):
         if not source.exists():
             raise BuildTypstError(f"referenced Markdown file does not exist: {source}")
-        parts.append(convert_markdown(source.read_text(encoding="utf-8"), source))
+        parts.append(
+            convert_markdown(
+                source.read_text(encoding="utf-8"), source, assets_dir, renderer
+            )
+        )
     return "\n\n".join(part.strip() for part in parts if part.strip()) + "\n"
 
 
-def write_typst_file(root: Path, output: Path) -> None:
+_RENDERER_UNSET = object()
+
+
+def write_typst_file(root: Path, output: Path, renderer=_RENDERER_UNSET) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(build_document(root), encoding="utf-8")
+    assets_dir = output.parent / "assets"
+    if renderer is _RENDERER_UNSET:
+        renderer = find_mermaid_renderer()
+    if renderer is not None:
+        assets_dir.mkdir(parents=True, exist_ok=True)
+    output.write_text(
+        build_document(root, assets_dir, renderer), encoding="utf-8"
+    )
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:

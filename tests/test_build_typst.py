@@ -201,3 +201,45 @@ class BuildTypstTests(unittest.TestCase):
 
         self.assertIn("```mermaid", result)
         self.assertIn("A --> B", result)
+
+    def test_convert_markdown_emits_image_when_renderer_available(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            assets = Path(tmp)
+
+            def fake_renderer(source, out_path):
+                out_path.write_text("<svg/>", encoding="utf-8")
+
+            markdown = "Intro.\n\n```mermaid\nflowchart TB\n  A --> B\n```\n"
+
+            typst = build_typst.convert_markdown(
+                markdown, Path("book/01.md"), assets, fake_renderer
+            )
+
+            self.assertIn('image("assets/', typst)
+            self.assertEqual(len(list(assets.glob("*.svg"))), 1)
+
+    def test_write_typst_file_renders_diagrams_with_injected_renderer(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            book = root / "book"
+            book.mkdir()
+            (book / "README.md").write_text(
+                "# mini containerを作って学ぶLinux\n\n"
+                "## Files\n\n"
+                "- [Chapter](chapter.md)\n",
+                encoding="utf-8",
+            )
+            (book / "chapter.md").write_text(
+                "# Chapter\n\n```mermaid\nflowchart TB\n  A --> B\n```\n",
+                encoding="utf-8",
+            )
+            output = root / "dist" / "mini-container-book.typ"
+
+            def fake_renderer(source, out_path):
+                out_path.write_text("<svg/>", encoding="utf-8")
+
+            build_typst.write_typst_file(root, output, renderer=fake_renderer)
+
+            text = output.read_text(encoding="utf-8")
+            self.assertIn('image("assets/', text)
+            self.assertTrue((output.parent / "assets").exists())
