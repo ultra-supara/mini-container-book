@@ -98,23 +98,26 @@ def find_mermaid_renderer() -> Callable[[str, Path], None] | None:
 
     def render(source: str, out_path: Path) -> None:
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        with tempfile.NamedTemporaryFile(
-            "w", suffix=".mmd", delete=False, encoding="utf-8"
-        ) as handle:
-            handle.write(source)
-            tmp_path = Path(handle.name)
+        tmp_path: Path | None = None
         try:
+            with tempfile.NamedTemporaryFile(
+                "w", suffix=".mmd", delete=False, encoding="utf-8"
+            ) as handle:
+                tmp_path = Path(handle.name)
+                handle.write(source)
             result = subprocess.run(
                 argv + ["-i", str(tmp_path), "-o", str(out_path), "-b", "transparent"],
                 capture_output=True,
                 text=True,
             )
             if result.returncode != 0:
+                out_path.unlink(missing_ok=True)
                 raise MermaidRenderError(
                     f"mmdc failed for {out_path.name}: {result.stderr.strip()}"
                 )
         finally:
-            tmp_path.unlink(missing_ok=True)
+            if tmp_path is not None:
+                tmp_path.unlink(missing_ok=True)
 
     return render
 
@@ -308,7 +311,11 @@ def document_preamble() -> str:
 """
 
 
-def build_document(root: Path, assets_dir: Path | None = None, renderer=None) -> str:
+def build_document(
+    root: Path,
+    assets_dir: Path | None = None,
+    renderer: Callable[[str, Path], None] | None = None,
+) -> str:
     parts = [document_preamble()]
     for source in extract_book_files(root):
         if not source.exists():
@@ -326,10 +333,10 @@ _RENDERER_UNSET = object()
 
 def write_typst_file(root: Path, output: Path, renderer=_RENDERER_UNSET) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
-    assets_dir = output.parent / "assets"
     if renderer is _RENDERER_UNSET:
         renderer = find_mermaid_renderer()
-    if renderer is not None:
+    assets_dir = output.parent / "assets" if renderer is not None else None
+    if assets_dir is not None:
         assets_dir.mkdir(parents=True, exist_ok=True)
     output.write_text(
         build_document(root, assets_dir, renderer), encoding="utf-8"
