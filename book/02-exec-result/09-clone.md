@@ -58,6 +58,7 @@ int clone(int (*fn)(void *), void *stack, int flags, void *arg, ...
 int child_process(void* arg){
     char* s = arg;
     puts(s);
+    fflush(stdout);
     return 0;
 }
 ```
@@ -116,6 +117,7 @@ waitpid(child,NULL,0);
 int child(void* arg){
     char* message = (char*)arg;
     puts(message);
+    fflush(stdout);
     return 0;
 }
 
@@ -149,7 +151,7 @@ int main(){
 }
 ```
 
-このプログラムでは、**`clone`**システムコールを使用して子プロセスを生成し、子プロセスがメッセージを出力します。親プロセスから渡されたメッセージは、子プロセス内の**`child`**関数で**`puts`**関数を使用して出力されます。子プロセスが終了したら、親プロセスは子プロセスの終了ステータスを表示します。また、**`mmap`**関数で確保したメモリ領域は**`munmap`**関数で解放しています。
+このプログラムでは、**`clone`**システムコールを使用して子プロセスを生成し、子プロセスがメッセージを出力します。親プロセスから渡されたメッセージは、子プロセス内の**`child`**関数で**`puts`**関数を使用して出力されます。なお、**`clone`**で作成した子プロセスはglibcのラッパー関数によって最終的に**`_exit`**で終了するため、標準出力がバッファリングされている（パイプやファイルへリダイレクトした場合など）と、バッファがフラッシュされず出力が反映されないことがあります。そのため、子プロセス側では**`puts`**の直後に**`fflush(stdout)`**を呼んでいます。子プロセスが終了したら、親プロセスは子プロセスの終了ステータスを表示します。また、**`mmap`**関数で確保したメモリ領域は**`munmap`**関数で解放しています。
 
 完全なサンプルコードは [examples/02-exec-result/clone](../../examples/02-exec-result/clone/README.md) にあります。
 

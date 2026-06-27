@@ -1,1 +1,0 @@
-/usr/bin/cc CMakeFiles/file_io.dir/src/main.c.o -o file_io 

@@ -9,6 +9,7 @@
 
 static void print_uid(const char* label) {
     printf("[%s]UID=%d\n", label, (int)getuid());
+    fflush(stdout);
 }
 
 static int child(void* arg) {

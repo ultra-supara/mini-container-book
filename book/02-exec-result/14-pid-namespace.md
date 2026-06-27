@@ -53,6 +53,7 @@ printf("PID=%d\n", (int)getpid());
 ```c
 void print_pid(const char* s) {
     printf("[%s]PID=%d\n", s ? s : "", (int)getpid());
+    fflush(stdout);
 }
 ```
 
@@ -86,6 +87,7 @@ int main() {
 
 void print_pid(const char* s) {
     printf("[%s]PID=%d\n", s ? s : "", (int)getpid());
+    fflush(stdout);
 }
 
 int main() {
@@ -206,6 +208,7 @@ int main() {
 
 void print_pid(const char* s) {
     printf("[%s]PID=%d\n", s ? s : "", (int)getpid());
+    fflush(stdout);
 }
 
 int child(void* arg) {

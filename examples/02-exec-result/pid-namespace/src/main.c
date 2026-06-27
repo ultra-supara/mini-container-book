@@ -9,6 +9,7 @@
 
 static void print_pid(const char* label) {
     printf("[%s]PID=%d\n", label, (int)getpid());
+    fflush(stdout);
 }
 
 static int child(void* arg) {

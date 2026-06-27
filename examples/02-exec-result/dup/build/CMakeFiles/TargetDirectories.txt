@@ -1,3 +1,0 @@
-/work/examples/02-exec-result/dup/build/CMakeFiles/dup_example.dir
-/work/examples/02-exec-result/dup/build/CMakeFiles/edit_cache.dir
-/work/examples/02-exec-result/dup/build/CMakeFiles/rebuild_cache.dir

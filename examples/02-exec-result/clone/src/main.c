@@ -10,6 +10,7 @@
 static int child(void* arg) {
     const char* message = (const char*)arg;
     puts(message);
+    fflush(stdout);
     return 0;
 }
 

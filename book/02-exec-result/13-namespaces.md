@@ -72,6 +72,6 @@ int clone(int (*fn)(void *), void *stack, int flags, void *arg, ...
 | User | `CLONE_NEWUSER` |
 | UTS | `CLONE_NEWUTS` |
 
-これらの定数を**`flags`**に設定して**`clone`**を呼び出すことで、指定した種類の名前空間を新しく作成し、その名前空間内でプロセスが開始されます。
+これらの定数を**`flags`**に設定して**`clone`**を呼び出すことで、指定した種類の名前空間を新しく作成し、その名前空間内でプロセスが開始されます。ただし**`CLONE_NEWTIME`**（Time名前空間）だけは例外で、値`0x80`が`clone`の`flags`下位8ビット（終了シグナル）と重なるため`clone`では指定できません。Time名前空間は`unshare(CLONE_NEWTIME)`または`clone3`で作成します。
 
 ---
